@@ -1,5 +1,4 @@
-service:
-  name: auction-services
+service: auction-services
 
 plugins:
   - serverless-bundle
@@ -7,10 +6,11 @@ plugins:
 
 provider:
   name: aws
-  runtime: nodejs12.x
+  runtime: nodejs14.x
   memorySize: 256
   stage: ${opt:stage, 'dev'}
-  
+  region: eu-west-1
+
 functions:
   hello:
     handler: src/handlers/hello.handler
