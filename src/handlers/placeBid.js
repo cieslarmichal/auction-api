@@ -2,12 +2,19 @@ import AWS from 'aws-sdk';
 import { StatusCodes } from 'http-status-codes';
 import { commonMiddleware } from '../shared';
 import createError from 'http-errors';
+import { getAuctionById } from './getAuction';
 
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 
 async function placeBid(event, context) {
   const { id } = event.pathParameters;
   const { amount } = event.body;
+
+  const auction = await getAuctionById(id);
+
+  if (amount <= auction.highestBid.amount) {
+    throw new createError.UnprocessableEntity(`Bid is not higher than ${auction.highestBid.amount}`);
+  }
 
   const params = {
     TableName: process.env.AUCTIONS_TABLE_NAME,
@@ -32,7 +39,7 @@ async function placeBid(event, context) {
 
   return {
     statusCode: StatusCodes.CREATED,
-    body: JSON.stringify(updatedAuction),
+    body: updatedAuction,
   };
 }
 
