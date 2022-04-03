@@ -24,6 +24,14 @@ async function placeBid(event, context) {
     throw new createError.UnprocessableEntity(`Bid is not higher than ${auction.highestBid.amount}`);
   }
 
+  if (email === auction.seller) {
+    throw new createError.UnprocessableEntity(`Bid cannot be placed by auction seller`);
+  }
+
+  if (email === auction.highestBid.bidder) {
+    throw new createError.UnprocessableEntity(`Bid cannot be placed again by highest bid buyer`);
+  }
+
   const params = {
     TableName: process.env.AUCTIONS_TABLE_NAME,
     Key: { id },
