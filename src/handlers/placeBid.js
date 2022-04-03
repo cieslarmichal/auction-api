@@ -12,6 +12,10 @@ async function placeBid(event, context) {
 
   const auction = await getAuctionById(id);
 
+  if (auction.status === 'CLOSED') {
+    throw new createError.UnprocessableEntity(`Bid cannot be placed on closed auction`);
+  }
+
   if (amount <= auction.highestBid.amount) {
     throw new createError.UnprocessableEntity(`Bid is not higher than ${auction.highestBid.amount}`);
   }
