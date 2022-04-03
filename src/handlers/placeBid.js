@@ -9,7 +9,10 @@ const dynamoDb = new AWS.DynamoDB.DocumentClient();
 
 async function placeBid(event, context) {
   const { id } = event.pathParameters;
+
   const { amount } = event.body;
+
+  const { email } = event.requestContext.authorizer;
 
   const auction = await getAuctionById(id);
 
@@ -24,28 +27,27 @@ async function placeBid(event, context) {
   const params = {
     TableName: process.env.AUCTIONS_TABLE_NAME,
     Key: { id },
-    UpdateExpression: 'set highestBid.amount = :amount',
+    UpdateExpression: 'set highestBid.amount = :amount, highestBid.bidder = :bidder',
     ExpressionAttributeValues: {
       ':amount': amount,
+      ':bidder': email,
     },
     ReturnValues: 'ALL_NEW',
   };
 
-  let updatedAuction;
-
   try {
     const result = await dynamoDb.update(params).promise();
 
-    updatedAuction = result.Attributes;
+    const updatedAuction = result.Attributes;
+
+    return {
+      statusCode: StatusCodes.CREATED,
+      body: JSON.stringify(updatedAuction),
+    };
   } catch (error) {
     console.log(error);
     throw new createError.InternalServerError(error);
   }
-
-  return {
-    statusCode: StatusCodes.CREATED,
-    body: updatedAuction,
-  };
 }
 
 export const handler = commonMiddleware(placeBid).use(
