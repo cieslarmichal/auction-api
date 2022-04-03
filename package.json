@@ -1,8 +1,7 @@
 {
-  "name": "auction-services",
+  "name": "auction-service",
   "version": "1.0.0",
-  "description": "Codingly template for Serverless Framework projects",
-  "author": "Ariel Weinberger <ariel@codingly.io>",
+  "author": "Michal Cieslar",
   "license": "MIT",
   "devDependencies": {
     "babel-core": "^6.25.0",
