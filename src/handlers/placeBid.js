@@ -1,8 +1,9 @@
 import AWS from 'aws-sdk';
 import { StatusCodes } from 'http-status-codes';
-import { commonMiddleware } from '../shared';
+import { commonMiddleware, placeBidSchema } from '../shared';
 import createError from 'http-errors';
 import { getAuctionById } from './getAuction';
+import validator from '@middy/validator';
 
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 
@@ -47,4 +48,11 @@ async function placeBid(event, context) {
   };
 }
 
-export const handler = commonMiddleware(placeBid);
+export const handler = commonMiddleware(placeBid).use(
+  validator({
+    inputSchema: placeBidSchema,
+    ajvOptions: {
+      strict: false,
+    },
+  })
+);
