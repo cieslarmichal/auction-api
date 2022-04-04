@@ -7,6 +7,8 @@ import createError from 'http-errors';
 
 const s3 = new AWS.S3();
 
+const dynamoDb = new AWS.DynamoDB.DocumentClient();
+
 async function uploadPictureToS3(key, body){
     const result = await s3.upload({
         Bucket: process.env.AUCTIONS_BUCKET_NAME,
@@ -16,7 +18,25 @@ async function uploadPictureToS3(key, body){
         ContentType: 'image/jpeg',
     }).promise();
 
-    return result;
+    return result.Location;
+}
+
+async function setAuctionPictureUrl(id, pictureUrl){
+    const params = {
+        TableName: process.env.AUCTIONS_TABLE_NAME,
+        Key: { id },
+        UpdateExpression: 'set pictureUrl = :pictureUrl',
+        ExpressionAttributeValues: {
+          ':pictureUrl': pictureUrl,
+        },
+        ReturnValues: 'ALL_NEW',
+      };
+
+    const result = await dynamoDb.update(params).promise();
+
+    const updatedAuction = result.Attributes;
+
+    return updatedAuction;
 }
 
 async function uploadAuctionPicture(event) {
@@ -29,17 +49,18 @@ async function uploadAuctionPicture(event) {
     const buffer = Buffer.from(base64, 'base64');
 
     try {
-        const uploadPictureToS3Result = await uploadPictureToS3(auction.id + '.jpg', buffer);
-        console.log(uploadPictureToS3Result);
+        const pictureUrl = await uploadPictureToS3(auction.id + '.jpg', buffer);
+
+        const updatedAuction = await setAuctionPictureUrl(id, pictureUrl);
+
+        return {
+            statusCode: StatusCodes.OK,
+            body: JSON.stringify(updatedAuction),
+        };
     } catch (error) {
         console.log(error);
         throw new createError.InternalServerError(error);
     }
-
-    return {
-        statusCode: StatusCodes.OK,
-        body: JSON.stringify({}),
-    };
 }
 
 export const handler = middy(uploadAuctionPicture).use(httpErrorHandler());
