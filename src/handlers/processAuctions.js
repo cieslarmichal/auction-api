@@ -40,31 +40,62 @@ async function closeAuction(auction) {
 
     await dynamoDb.update(params).promise();
 
+    const { highestBid } = auction;
+    const { amount } = highestBid;
+
+    if (amount === 0){
+        await notifySellerAboutNotSoldItem(auction);
+        return;
+    }
+
+    const notifySellerAction = notifySellerAboutSoldItem(auction);
+
+    const notifyBidderAction = notifyBidder(auction);
+
+    return Promise.all([notifySellerAction, notifyBidderAction]);
+}
+
+async function notifySellerAboutNotSoldItem(auction) {
+    const { title, seller } = auction;
+
+    const subjectForSeller = 'No bids on your auction item';
+
+    const bodyForSeller = `Your item "${title}" didn't get any bids.`;
+
+    return notifyByEmail(subjectForSeller, seller, bodyForSeller);
+}
+
+async function notifySellerAboutSoldItem(auction) {
     const { title, seller, highestBid } = auction;
+    const { amount } = highestBid;
+
+    const subjectForSeller = 'Your item has been sold!';
+
+    const bodyForSeller = `Your item "${title}" has been sold for $${amount}.`;
+
+    return notifyByEmail(subjectForSeller, seller, bodyForSeller);
+}
+
+async function notifyBidder(auction) {
+    const { title, highestBid } = auction;
     const { amount, bidder } = highestBid;
 
-    console.log(seller);
-    console.log(bidder);
+    const subjectForBidder = 'You won an auction!';
 
-    const notifySeller = sqs.sendMessage({
+    const bodyForBidder = `You got yourself a "${title}" for $${amount}`;
+
+    return notifyByEmail(subjectForBidder, bidder, bodyForBidder);
+}
+
+async function notifyByEmail(subject, recipient, body) {
+    return sqs.sendMessage({
         QueueUrl: process.env.EMAIL_QUEUE_URL,
         MessageBody: JSON.stringify({
-            subject: 'Your item has been sold!',
-            recipient: seller,
-            body: `Your item "${title}" has been sold for $${amount}.`,
+            subject,
+            recipient,
+            body,
         }),
     }).promise();
-
-    const notifyBidder = sqs.sendMessage({
-        QueueUrl: process.env.EMAIL_QUEUE_URL,
-        MessageBody: JSON.stringify({
-            subject: 'You won an auction!',
-            recipient: bidder,
-            body: `You got yourself a "${title}" for $${amount}`,
-        }),
-    }).promise();
-
-    return Promise.all([notifySeller, notifyBidder]);
 }
 
 async function processAuctions(event, context) {
