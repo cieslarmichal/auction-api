@@ -12,8 +12,10 @@ provider:
   region: eu-west-1
   environment:
     AUCTIONS_TABLE_NAME: ${self:custom.AuctionsTable.name}
+    EMAIL_QUEUE_URL: ${self:custom.EmailQueue.url}
   iamRoleStatements:
     - ${file(iam/AuctionsTableIAM.yml):AuctionsTableIAM}
+    - ${file(iam/EmailQueueIAM.yml):EmailQueueIAM}
 
 resources:
   Resources:
@@ -62,3 +64,6 @@ custom:
   AuctionsTable:
     name: !Ref AuctionsTable
     arn: !GetAtt AuctionsTable.Arn
+  EmailQueue:
+    arn: ${cf:notification-service-${self:provider.stage}.EmailQueueArn}
+    url: ${cf:notification-service-${self:provider.stage}.EmailQueueUrl}
