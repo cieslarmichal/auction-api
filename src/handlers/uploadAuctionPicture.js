@@ -42,7 +42,13 @@ async function setAuctionPictureUrl(id, pictureUrl){
 async function uploadAuctionPicture(event) {
     const {id} = event.pathParameters;
 
+    const { email } = event.requestContext.authorizer;
+
     const auction = await getAuctionById(id);
+
+    if (email !== auction.seller) {
+      throw new createError.UnprocessableEntity('Picture can be only uploaded by auction seller');
+    }
 
     const base64 = event.body.replace(/^data:image\/\w+;base64,/, '');
 
