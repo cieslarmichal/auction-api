@@ -1,6 +1,9 @@
 import { StatusCodes } from "http-status-codes";
 import { getAuctionById } from './getAuction';
 import AWS from 'aws-sdk';
+import middy from '@middy/core';
+import httpErrorHandler from "@middy/http-error-handler";
+import createError from 'http-errors';
 
 const s3 = new AWS.S3();
 
@@ -25,8 +28,13 @@ async function uploadAuctionPicture(event) {
 
     const buffer = Buffer.from(base64, 'base64');
 
-    const uploadPictureToS3Result = await uploadPictureToS3(auction.id + '.jpg', buffer);
-    console.log(uploadPictureToS3Result);
+    try {
+        const uploadPictureToS3Result = await uploadPictureToS3(auction.id + '.jpg', buffer);
+        console.log(uploadPictureToS3Result);
+    } catch (error) {
+        console.log(error);
+        throw new createError.InternalServerError(error);
+    }
 
     return {
         statusCode: StatusCodes.OK,
@@ -34,4 +42,4 @@ async function uploadAuctionPicture(event) {
     };
 }
 
-export const handler = uploadAuctionPicture;
+export const handler = middy(uploadAuctionPicture).use(httpErrorHandler());
