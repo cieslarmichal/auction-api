@@ -4,6 +4,8 @@ import AWS from 'aws-sdk';
 import middy from '@middy/core';
 import httpErrorHandler from "@middy/http-error-handler";
 import createError from 'http-errors';
+import { uploadAuctionPictureSchema } from '../shared';
+import validator from '@middy/validator';
 
 const s3 = new AWS.S3();
 
@@ -69,4 +71,11 @@ async function uploadAuctionPicture(event) {
     }
 }
 
-export const handler = middy(uploadAuctionPicture).use(httpErrorHandler());
+export const handler = middy(uploadAuctionPicture).use(httpErrorHandler()).use(
+    validator({
+      inputSchema: uploadAuctionPictureSchema,
+      ajvOptions: {
+        strict: false,
+      },
+    })
+  );
