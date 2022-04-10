@@ -1,0 +1,5 @@
+EmailQueueIAM:
+  Effect: Allow
+  Action:
+    - sqs:ReceiveMessage
+  Resource: ${self:custom.emailQueue.arn}

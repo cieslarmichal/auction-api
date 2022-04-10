@@ -1,0 +1,35 @@
+service: notification-service
+
+plugins:
+  - serverless-bundle
+  - serverless-pseudo-parameters
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  memorySize: 256
+  region: eu-west-1
+  stage: ${opt:stage, 'dev'}
+  iamRoleStatements:
+    - ${file(iam/SendEmailIAM.yml):SendEmailIAM}
+
+resources:
+  Resources:
+    EmailQueue: ${file(resources/EmailQueue.yml):EmailQueue}
+  Outputs:
+    EmailQueueArn: ${file(resources/EmailQueue.yml):Outputs.EmailQueueArn}
+    EmailQueueUrl: ${file(resources/EmailQueue.yml):Outputs.EmailQueueUrl}
+
+functions:
+  sendEmail:
+    handler: src/handlers/sendEmail.handler
+    events:
+      - sqs:
+          arn: ${self:custom.emailQueue.arn}
+          batchSize: 1
+
+custom:
+  emailQueue:
+    name: EmailQueue-${self:provider.stage}
+    arn: !GetAtt EmailQueue.Arn
+    url: !Ref EmailQueue
